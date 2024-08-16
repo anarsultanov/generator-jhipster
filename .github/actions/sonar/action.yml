@@ -32,7 +32,7 @@ runs:
       shell: bash
       run: |
         mkdir -p ./cached-project
-        find . -path ./generator-jhipster -prune -o -print | cpio -pdm ./cached-project
+        cp -r ./app/* ./cached-project/
 
     - name: 'Cache copied project (main)'
       if: github.ref == 'refs/heads/main'
