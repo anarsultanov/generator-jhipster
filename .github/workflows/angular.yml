@@ -176,6 +176,7 @@ jobs:
       - name: 'ANALYSIS: Sonar analysis'
         if: >-
           github.event_name == 'push' &&
+          github.repository == 'jhipster/generator-jhipster' &&
           matrix.sonar-analyse == 'true' &&
           steps.compare.outputs.equals != 'true' &&
           matrix.workspaces != 'true' &&

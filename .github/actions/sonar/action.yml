@@ -16,12 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-name: "SonarQube PR Analysis"
-description: "A GitHub Action to perform SonarQube analysis on a PR with caching and metrics retrieval."
+name: 'SonarQube PR Analysis'
+description: 'A GitHub Action to perform SonarQube analysis on a PR with caching and metrics retrieval.'
 
 inputs:
   sonar_project_key:
-    description: "SonarQube project key"
+    description: 'SonarQube project key'
     required: true
 
 runs:
@@ -47,10 +47,12 @@ runs:
 
     - name: 'Install jq'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
       run: sudo apt-get install -y jq
 
     - name: 'Start SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
       run: |
         docker run -d --name sonar-server -p 9000:9000 mc1arke/sonarqube-with-community-branch-plugin:latest
         until curl -s http://localhost:9000/api/system/status | grep -q '"status":"UP"'; do
@@ -60,6 +62,7 @@ runs:
 
     - name: 'Run SonarQube on main (cached)'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
       run: |
         cd main-project
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
@@ -72,6 +75,7 @@ runs:
 
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
       run: |
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
@@ -85,6 +89,7 @@ runs:
 
     - name: 'Retrieve PR metrics'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
         "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=bugs,coverage,vulnerabilities,duplicated_lines_density,code_smells,security_hotspots")
@@ -151,6 +156,7 @@ runs:
 
     - name: 'Stop SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
       run: |
         docker stop sonar-server
         docker rm sonar-server
