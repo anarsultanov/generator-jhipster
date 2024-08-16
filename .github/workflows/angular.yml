@@ -203,7 +203,7 @@ jobs:
           needs.build-matrix.outputs.client != 'false' &&
           matrix.skip-backend-tests != 'true' &&
           needs.build-matrix.outputs.server != 'false'
-        uses: ./.github/actions/sonar
+        uses: ./generator-jhipster/.github/actions/sonar
         with:
           sonar_project_key: 'jhipster-sample-application'
 
