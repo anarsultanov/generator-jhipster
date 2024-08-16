@@ -1,0 +1,157 @@
+#
+# Copyright 2013-2024 the original author or authors from the JHipster project.
+#
+# This file is part of the JHipster project, see https://www.jhipster.tech/
+# for more information.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+name: "SonarQube PR Analysis"
+description: "A GitHub Action to perform SonarQube analysis on a PR with caching and metrics retrieval."
+
+inputs:
+  sonar_project_key:
+    description: "SonarQube project key"
+    required: true
+
+runs:
+  using: composite
+  steps:
+
+    - name: 'Cache whole project (main)'
+      if: github.ref == 'refs/heads/main'
+      uses: actions/cache@v4
+      with:
+        path: ./
+        key: project-cache-${{ github.sha }}
+
+    - name: 'Restore project cache'
+      if: github.event_name == 'pull_request'
+      id: restore-cache
+      uses: actions/cache@v4
+      with:
+        path: ./main-project
+        key: project-cache-${{ github.event.pull_request.base.sha }}
+        restore-keys: |
+          project-cache-
+
+    - name: 'Install jq'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      run: sudo apt-get install -y jq
+
+    - name: 'Start SonarQube'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      run: |
+        docker run -d --name sonar-server -p 9000:9000 mc1arke/sonarqube-with-community-branch-plugin:latest
+        until curl -s http://localhost:9000/api/system/status | grep -q '"status":"UP"'; do
+          echo "Waiting for SonarQube to start..."
+          sleep 5
+        done
+
+    - name: 'Run SonarQube on main (cached)'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      run: |
+        cd main-project
+        ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
+          -Dsonar.host.url=http://localhost:9000 \
+          -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
+          -Dsonar.login=admin \
+          -Dsonar.password=admin
+          -Dsonar.branch.name=main
+        cd ..
+
+    - name: 'Run SonarQube on PR'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      run: |
+        ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
+          -Dsonar.host.url=http://localhost:9000 \
+          -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
+          -Dsonar.login=admin \
+          -Dsonar.password=admin
+          -Dsonar.pullrequest.key=${{github.event.pull_request.number}}
+          -Dsonar.pullrequest.branch=${{github.head_ref}}
+          -Dsonar.pullrequest.base=main
+
+
+    - name: 'Retrieve PR metrics'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      run: |
+        sonar_response=$(curl -s -u admin:admin \
+        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=bugs,coverage,vulnerabilities,duplicated_lines_density,code_smells,security_hotspots")
+
+        echo "SonarQube Analysis response: $sonar_response"
+
+        error=$(echo $sonar_response | jq -r .errors)
+        measures_length=$(echo "$sonar_response" | jq '.component.measures | length')
+
+        if [[ $error == null && $measures_length -gt 0 ]]; then
+         success=true
+        else
+         echo "Failed to get Sonar analysis results."
+         exit 1
+        fi
+
+        measure () {
+        echo "$sonar_response" | jq -r .component | jq -r .measures | jq '[.[]|select(.metric=="'$1'")][0]' | jq -r .value
+        }
+
+        vul=$(measure "vulnerabilities")
+        cov=$(measure "coverage")
+        bug=$(measure "bugs")
+        dup=$(measure "duplicated_lines_density")
+        csm=$(measure "code_smells")
+        sec=$(measure "security_hotspots")
+
+        echo "----- SonarQube Analysis Results -----"
+        echo "  Coverage:          $cov%"
+        echo "  Vulnerabilities:   $vul"
+        echo "  Bugs:              $bug"
+        echo "  Duplication:       $dup%"
+        echo "  Code smells:       $csm"
+        echo "  Security Hotspots: $sec"
+        echo "--------------------------------------"
+
+        # Fail the build if any critical metric is above the threshold
+        if [[ $vul != "0" ]]; then
+        echo "SonarQube Analysis failed -> Vulnerabilities"
+        exit 1
+        fi
+
+        if [[ $bug != "0" ]]; then
+        echo "SonarQube Analysis failed -> Bugs"
+        exit 1
+        fi
+
+        if [[ $dup != "0.0" ]]; then
+        echo "SonarQube Analysis failed -> Duplication"
+        exit 1
+        fi
+
+        if [[ $csm != "0" ]]; then
+        echo "SonarQube Analysis failed -> Code smells"
+        exit 1
+        fi
+
+        if [[ $sec != "0" ]]; then
+        echo "SonarQube Analysis failed -> Security Hotspots"
+        exit 1
+        fi
+
+        echo "SonarQube Analysis passed successfully."
+
+    - name: 'Stop SonarQube'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      run: |
+        docker stop sonar-server
+        docker rm sonar-server
+
