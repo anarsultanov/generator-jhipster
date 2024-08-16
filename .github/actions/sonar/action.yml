@@ -70,8 +70,10 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
+        ls -la
         cd cached-project
-        ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
+        ls -la
+        ../mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
