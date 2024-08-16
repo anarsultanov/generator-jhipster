@@ -23,10 +23,26 @@ inputs:
   sonar_project_key:
     description: 'SonarQube project key'
     required: true
+  workdir:
+    description: 'Working directory for the action'
+    required: false
+    default: '.'
 
 runs:
   using: composite
   steps:
+    - name: 'Change to specified working directory'
+      shell: bash
+      run: |
+        cd ${{ inputs.workdir }}
+
+#    - name: 'Create cache directory and copy files'
+#      if: github.ref == 'refs/heads/main'
+#      shell: bash
+#      run: |
+#        mkdir -p ./cached-project
+#        find . -path ./generator-jhipster -prune -o -print | cpio -pdm ./cached-project
+
     - name: 'Create cache directory and copy files'
       if: github.ref == 'refs/heads/main'
       shell: bash

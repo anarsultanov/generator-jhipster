@@ -173,7 +173,7 @@ jobs:
       #      - name: Dump docker logs
       #        if: always()
       #        uses: jwalton/gh-docker-logs@v2
-      - name: 'ANALYSIS: Sonar analysis'
+      - name: 'ANALYSIS: SonarCloud Main Branch Analysis'
         if: >-
           github.event_name == 'push' &&
           github.repository == 'jhipster/generator-jhipster' &&
@@ -194,7 +194,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      - name: 'Run SonarQube Analysis'
+      - name: 'ANALYSIS: Local SonarQube PR Analysis'
         if: >-
           matrix.sonar-analyse == 'true' &&
           steps.compare.outputs.equals != 'true' &&
@@ -206,6 +206,7 @@ jobs:
         uses: ./generator-jhipster/.github/actions/sonar
         with:
           sonar_project_key: 'jhipster-sample-application'
+          workdir: ${{ github.workspace }}/app
 
   check-angular:
     permissions:
