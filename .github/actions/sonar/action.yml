@@ -27,20 +27,26 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: 'Create cache directory and copy files'
+      if: github.ref == 'refs/heads/main'
+      shell: bash
+      run: |
+        mkdir -p ./cached-project
+        find . -path ./generator-jhipster -prune -o -print | cpio -pdm ./cached-project
 
-    - name: 'Cache whole project (main)'
+    - name: 'Cache copied project (main)'
       if: github.ref == 'refs/heads/main'
       uses: actions/cache@v4
       with:
-        path: ./
+        path: ./cached-project
         key: project-cache-${{ github.sha }}
 
-    - name: 'Restore project cache'
+    - name: 'Restore project cache to specific directory'
       if: github.event_name == 'pull_request'
       id: restore-cache
       uses: actions/cache@v4
       with:
-        path: ./main-project
+        path: ./cached-project
         key: project-cache-${{ github.event.pull_request.base.sha }}
         restore-keys: |
           project-cache-
@@ -64,7 +70,7 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        cd main-project
+        cd cached-project
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
@@ -85,7 +91,6 @@ runs:
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}}
           -Dsonar.pullrequest.branch=${{github.head_ref}}
           -Dsonar.pullrequest.base=main
-
 
     - name: 'Retrieve PR metrics'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
@@ -160,4 +165,3 @@ runs:
       run: |
         docker stop sonar-server
         docker rm sonar-server
-
