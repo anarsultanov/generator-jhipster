@@ -105,14 +105,14 @@ runs:
         measures_length=$(echo "$sonar_response" | jq '.component.measures | length')
 
         if [[ $error == null && $measures_length -gt 0 ]]; then
-         success=true
+          success=true
         else
-         echo "Failed to get Sonar analysis results."
-         exit 1
+          echo "Failed to get Sonar analysis results."
+          exit 1
         fi
 
         measure () {
-        echo "$sonar_response" | jq -r .component | jq -r .measures | jq '[.[]|select(.metric=="'$1'")][0]' | jq -r .value
+          echo "$sonar_response" | jq -r .component | jq -r .measures | jq '[.[]|select(.metric=="'$1'")][0]' | jq -r .value
         }
 
         vul=$(measure "vulnerabilities")
@@ -123,38 +123,46 @@ runs:
         sec=$(measure "security_hotspots")
 
         echo "----- SonarQube Analysis Results -----"
-        echo "  Coverage:          $cov%"
-        echo "  Vulnerabilities:   $vul"
-        echo "  Bugs:              $bug"
-        echo "  Duplication:       $dup%"
-        echo "  Code smells:       $csm"
-        echo "  Security Hotspots: $sec"
+        echo "  Coverage:          ${cov:-N/A}%"
+        echo "  Vulnerabilities:   ${vul:-N/A}"
+        echo "  Bugs:              ${bug:-N/A}"
+        echo "  Duplication:       ${dup:-N/A}%"
+        echo "  Code smells:       ${csm:-N/A}"
+        echo "  Security Hotspots: ${sec:-N/A}"
         echo "--------------------------------------"
 
-        # Fail the build if any critical metric is above the threshold
-        if [[ $vul != "0" ]]; then
-        echo "SonarQube Analysis failed -> Vulnerabilities"
-        exit 1
+        fail () {
+          echo
+          echo 'Listing all unresolved issues:'
+          curl -s -u admin:admin \
+          "http://localhost:9000/api/issues/search?componentKeys=${{ inputs.sonar_project_key }}&resolved=false&pullRequest=${{ github.event.pull_request.number }}" | \
+          jq -r '.issues[] | "File: \(.component) Line: \(.line)\n  [\(.rule)] \(.message)\n"'
+          exit 1
+        }
+
+        if [[ $vul != "0" && $vul != "" ]]; then
+          echo "SonarQube Analysis failed -> Vulnerabilities found"
+          fail
         fi
 
-        if [[ $bug != "0" ]]; then
-        echo "SonarQube Analysis failed -> Bugs"
-        exit 1
+        if [[ $bug != "0" && $bug != "" ]]; then
+          echo "SonarQube Analysis failed -> Bugs found"
+          fail
         fi
 
-        if [[ $dup != "0.0" ]]; then
-        echo "SonarQube Analysis failed -> Duplication"
-        exit 1
+        if [[ $dup != "0.0" && $dup != "" ]]; then
+          echo "SonarQube Analysis failed -> Code duplication found"
+          fail
         fi
 
-        if [[ $csm != "0" ]]; then
-        echo "SonarQube Analysis failed -> Code smells"
-        exit 1
+        if [[ $csm != "0" && $csm != "" ]]; then
+          echo "SonarQube Analysis failed -> Code smells found"
+          fail
         fi
 
-        if [[ $sec != "0" ]]; then
-        echo "SonarQube Analysis failed -> Security Hotspots"
-        exit 1
+        if [[ $sec != "0" && $sec != "" ]]; then
+          echo "SonarQube Analysis failed -> Security hotspots found"
+          fail
         fi
 
         echo "SonarQube Analysis passed successfully."
