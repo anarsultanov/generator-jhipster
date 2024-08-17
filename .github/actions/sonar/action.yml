@@ -80,7 +80,6 @@ runs:
       shell: bash
       run: |
         cd cached-project
-        ls -la
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
@@ -93,7 +92,6 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.workdir }}
-        ls -la
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
@@ -162,8 +160,9 @@ runs:
           fi
         } > sonar_result.md
 
-        # Export the result to an environment variable
-        echo "sonar-result=$(cat sonar_result.md)" >> $GITHUB_ENV
+        # Set the output for the markdown content
+        body=$(cat sonar_result.md)
+        echo "::set-output name=body::$body"
 
     - name: 'Find previous comment'
       if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success'
@@ -179,7 +178,7 @@ runs:
       uses: peter-evans/create-or-update-comment@v4
       with:
         issue-number: ${{ github.event.pull_request.number }}
-        body: ${{ env.sonar-result }}
+        body: ${{ steps.sonar-metrics.outputs.body }}
         comment-id: ${{ steps.find-comment.outputs.comment-id }}
 
     - name: 'Fail on issues'
