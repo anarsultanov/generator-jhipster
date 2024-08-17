@@ -199,7 +199,7 @@ runs:
         edit-mode: replace
 
     - name: 'Fail on issues'
-      if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success' && ${{ env.new_violations != "N/A" }} && ${{ env.new_violations != 0 }}
+      if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success' && env.new_violations != 'N/A' && env.new_violations != 0
       shell: bash
       run: |
         echo "SonarQube PR Analysis failed due to unresolved issues."
