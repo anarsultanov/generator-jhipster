@@ -64,7 +64,7 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        docker run -d --name sonar-server -p 9000:9000 mc1arke/sonarqube-with-community-branch-plugin:latest
+        docker run -d --name sonar-server -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 mc1arke/sonarqube-with-community-branch-plugin:latest
         until curl -s http://localhost:9000/api/system/status | grep -q '"status":"UP"'; do
           echo "Waiting for SonarQube to start..."
           sleep 5
@@ -108,7 +108,7 @@ runs:
       shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
-        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations")
+        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations,new_lines")
 
         echo "SonarQube Analysis response: $sonar_response"
 

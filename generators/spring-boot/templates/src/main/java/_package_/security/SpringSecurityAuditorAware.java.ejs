@@ -35,4 +35,9 @@ public class SpringSecurityAuditorAware implements AuditorAware<String> {
     public Optional<String> getCurrentAuditor() {
         return Optional.of(SecurityUtils.getCurrentUserLogin().orElse(Constants.SYSTEM));
     }
+
+    // Code Smell: Unused private method
+    private void logAuditor(String name) {
+        System.out.println("Auditor: " + name);
+    }
 }
