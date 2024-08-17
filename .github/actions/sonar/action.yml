@@ -108,7 +108,7 @@ runs:
       shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
-        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations&additionalFields=periods")
+        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations")
 
         echo "SonarQube Analysis response: $sonar_response"
 
@@ -130,7 +130,6 @@ runs:
         export_measure "new_coverage" "new_cov"
         export_measure "new_duplicated_lines_density" "new_dup"
 
-        # Write the markdown content to a file
         {
           echo "## :bar_chart: SonarQube PR Analysis Results"
           echo ""
@@ -154,7 +153,6 @@ runs:
           fi
         } > sonar_result.md
 
-        # Corrected way to append the multiline content to GITHUB_ENV
         {
           echo 'comment_body<<EOF'
           cat sonar_result.md
