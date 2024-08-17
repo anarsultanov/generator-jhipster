@@ -102,17 +102,11 @@ runs:
           -Dsonar.pullrequest.branch=${{github.head_ref}} \
           -Dsonar.pullrequest.base=${{github.base_ref}}
 
-    - name: 'Wait for SonarQube analysis to complete'
-      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
-      shell: bash
-      run: sleep 30  # Wait for 30 seconds to allow SonarQube analysis to complete
-
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       id: sonar-metrics
       shell: bash
       run: |
-        # Single API request to get project measures including coverage and duplication metrics
         sonar_response=$(curl -s -u admin:admin \
         "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations")
 
@@ -126,6 +120,7 @@ runs:
             metric_value="N/A"
           fi
           echo "$env_var_name=$metric_value" >> $GITHUB_ENV
+          export $env_var_name=$metric_value
         }
 
         # Export each metric value from the measures response

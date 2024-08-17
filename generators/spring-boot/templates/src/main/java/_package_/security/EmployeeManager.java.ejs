@@ -1,0 +1,69 @@
+<%#
+ Copyright 2013-2024 the original author or authors from the JHipster project.
+
+ This file is part of the JHipster project, see https://www.jhipster.tech/
+ for more information.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-%>
+package <%= packageName %>.security;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class EmployeeManager {
+
+    // Code Smell 1: Public member variable
+    public List<String> employees = new ArrayList<>();
+
+    // Code Smell 2: Long method
+    public void addEmployees(String... names) {
+        for (String name : names) {
+            if (name != null && !name.isEmpty()) {
+                employees.add(name);
+            } else {
+                System.out.println("Invalid name, cannot add to employees list.");
+            }
+        }
+
+        System.out.println("Number of employees added: " + names.length);
+        System.out.println("Total employees now: " + employees.size());
+    }
+
+    // Code Smell 3: Duplicated code
+    public void printEmployeeList() {
+        for (String employee : employees) {
+            System.out.println("Employee: " + employee);
+        }
+        System.out.println("Total employees: " + employees.size());
+    }
+
+    // Code Smell 4: Unused private method
+    private void logAddition(String name) {
+        System.out.println("Employee added: " + name);
+    }
+
+    // Code Smell 5: Hard-coded values
+    public void checkEmployeeCount() {
+        if (employees.size() > 100) {
+            System.out.println("Warning: Employee count exceeds 100");
+        }
+    }
+
+    // Code Smell 6: Magic number
+    public void removeLastEmployee() {
+        if (!employees.isEmpty()) {
+            employees.remove(employees.size() - 1); // Magic number '1'
+        }
+    }
+}
