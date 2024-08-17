@@ -136,17 +136,16 @@ runs:
         export_measure "new_code_smells" "new_csm"
         export_measure "new_violations" "new_violations"
 
-        # Format the output as a markdown table and write it to sonar_result.md
         {
           echo "## :bar_chart: SonarQube PR Analysis Results"
           echo ""
-          echo "| Metric                  | Value       |"
-          echo "|-------------------------|-------------|"
-          echo "| **New Coverage**        | ${new_cov:-N/A}% |"
-          echo "| **New Vulnerabilities** | ${new_vul:-N/A} |"
-          echo "| **New Bugs**            | ${new_bug:-N/A} |"
-          echo "| **New Duplication**     | ${new_dup:-N/A}% |"
-          echo "| **New Code smells**     | ${new_csm:-N/A} |"
+          echo "| Metric                      | Value       |"
+          echo "|-----------------------------|-------------|"
+          echo "| **New Vulnerabilities**     | ${new_vul:-N/A} |"
+          echo "| **New Code smells**         | ${new_csm:-N/A} |"
+          echo "| **New Bugs**                | ${new_bug:-N/A} |"
+          echo "| **Coverage on New Codee**   | ${new_cov:-N/A}% |"
+          echo "| **Duplication on New Code** | ${new_dup:-N/A}% |"
 
           if [[ $new_violations != "0" && $new_violations != "" ]]; then
             echo ""
@@ -160,9 +159,11 @@ runs:
           fi
         } > sonar_result.md
 
-        # Set the output for the markdown content
-        body=$(cat sonar_result.md)
-        echo "::set-output name=body::$body"
+        {
+          echo 'comment_body<<EOF'
+          cat sonar_result.md
+          echo 'EOF'
+        } >> "$GITHUB_ENV"
 
     - name: 'Find previous comment'
       if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success'
@@ -178,7 +179,7 @@ runs:
       uses: peter-evans/create-or-update-comment@v4
       with:
         issue-number: ${{ github.event.pull_request.number }}
-        body: ${{ steps.sonar-metrics.outputs.body }}
+        body: ${{ env.comment_body }}
         comment-id: ${{ steps.find-comment.outputs.comment-id }}
 
     - name: 'Fail on issues'
