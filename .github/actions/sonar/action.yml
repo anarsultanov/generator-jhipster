@@ -105,46 +105,13 @@ runs:
           -Dsonar.pullrequest.branch=${{github.head_ref}} \
           -Dsonar.pullrequest.base=main
 
-    - name: 'Wait for SonarQube tasks to complete'
-      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
-      shell: bash
-      run: |
-        wait_for_completion() {
-          while : ; do
-            # Fetch the component's tasks
-            response=$(curl -s -u admin:admin "http://localhost:9000/api/ce/component?component=${{ inputs.sonar_project_key }}")
-
-            # Check for any pending or in-progress tasks in the queue or the current task
-            queue_status=$(echo "$response" | jq -r '.queue[]?.status')
-            current_status=$(echo "$response" | jq -r '.current.status')
-
-            if [[ "$queue_status" == "" && "$current_status" != "IN_PROGRESS" ]]; then
-              echo "All tasks completed or no tasks pending. Proceeding..."
-              break
-            fi
-
-            if [[ "$queue_status" == "PENDING" || "$queue_status" == "IN_PROGRESS" || "$current_status" == "IN_PROGRESS" ]]; then
-              echo "Tasks are still in progress or pending. Waiting..."
-              sleep 10
-            else
-              echo "All tasks completed. Proceeding..."
-              break
-            fi
-          done
-        }
-
-        wait_for_completion
-
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       id: sonar-metrics
       shell: bash
       run: |
-        sonar=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=bugs%2Ccoverage%2Cvulnerabilities%2Cduplicated_lines_density%2Ccode_smells%2Csecurity_hotspots")
-        echo "sonar analysis response: $sonar"
-
         sonar_response=$(curl -s -u admin:admin \
-        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations,new_lines")
+        "http://localhost:9000/api/measures/component?additionalFields=metrics&component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=coverage,new_coverage,new_lines_to_cover,new_violations,duplicated_lines_density,new_duplicated_lines_density,new_lines,new_code_smells,new_maintainability_rating,new_bugs,new_reliability_rating,new_vulnerabilities,new_security_hotspots,new_security_review_rating,new_security_rating")
 
         echo "SonarQube Analysis response: $sonar_response"
 
