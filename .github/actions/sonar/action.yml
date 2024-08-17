@@ -36,7 +36,7 @@ runs:
       shell: bash
       run: |
         mkdir -p ./cached-project
-        cp -r ${{ inputs.workdir }}/* ./cached-project/
+        cp -r ${{ inputs.workdir }}/. ./cached-project/
 
     - name: 'Cache copied project (main)'
       if: github.ref == 'refs/heads/main'
