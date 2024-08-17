@@ -108,7 +108,7 @@ runs:
       shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
-        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations")
+        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations&additionalFields=periods")
 
         echo "SonarQube Analysis response: $sonar_response"
 
@@ -177,6 +177,7 @@ runs:
         issue-number: ${{ github.event.pull_request.number }}
         body: ${{ env.comment_body }}
         comment-id: ${{ steps.find-comment.outputs.comment-id }}
+        edit-mode: replace
 
     - name: 'Fail on issues'
       if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success' && "${{ env.new_violations }}" != "N/A" && "${{ env.new_violations }}" != "0"
