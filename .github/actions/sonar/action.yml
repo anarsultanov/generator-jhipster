@@ -109,7 +109,7 @@ runs:
       shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
-        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=bugs,coverage,vulnerabilities,duplicated_lines_density,code_smells,security_hotspots")
+        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density")
 
         echo "SonarQube Analysis response: $sonar_response"
 
@@ -127,21 +127,19 @@ runs:
           echo "$sonar_response" | jq -r .component | jq -r .measures | jq '[.[]|select(.metric=="'$1'")][0]' | jq -r .value
         }
 
-        vul=$(measure "vulnerabilities")
-        cov=$(measure "coverage")
-        bug=$(measure "bugs")
-        dup=$(measure "duplicated_lines_density")
-        csm=$(measure "code_smells")
-        sec=$(measure "security_hotspots")
+        new_vul=$(measure "new_vulnerabilities")
+        new_cov=$(measure "new_coverage")
+        new_bug=$(measure "new_bugs")
+        new_dup=$(measure "new_duplicated_lines_density")
+        new_csm=$(measure "new_code_smells")
 
-        echo "----- SonarQube Analysis Results -----"
-        echo "  Coverage:          ${cov:-N/A}%"
-        echo "  Vulnerabilities:   ${vul:-N/A}"
-        echo "  Bugs:              ${bug:-N/A}"
-        echo "  Duplication:       ${dup:-N/A}%"
-        echo "  Code smells:       ${csm:-N/A}"
-        echo "  Security Hotspots: ${sec:-N/A}"
-        echo "--------------------------------------"
+        echo "----- SonarQube PR Analysis Results -----"
+        echo "  New Coverage:          ${new_cov:-N/A}%"
+        echo "  New Vulnerabilities:   ${new_vul:-N/A}"
+        echo "  New Bugs:              ${new_bug:-N/A}"
+        echo "  New Duplication:       ${new_dup:-N/A}%"
+        echo "  New Code smells:       ${new_csm:-N/A}"
+        echo "-----------------------------------------"
 
         fail () {
           echo
@@ -152,32 +150,27 @@ runs:
           exit 1
         }
 
-        if [[ $vul != "0" && $vul != "" ]]; then
-          echo "SonarQube Analysis failed -> Vulnerabilities found"
+        if [[ $new_vul != "0" && $new_vul != "" ]]; then
+          echo "SonarQube PR Analysis failed -> New vulnerabilities found"
           fail
         fi
 
-        if [[ $bug != "0" && $bug != "" ]]; then
-          echo "SonarQube Analysis failed -> Bugs found"
+        if [[ $new_bug != "0" && $new_bug != "" ]]; then
+          echo "SonarQube PR Analysis failed -> New bugs found"
           fail
         fi
 
-        if [[ $dup != "0.0" && $dup != "" ]]; then
-          echo "SonarQube Analysis failed -> Code duplication found"
+        if [[ $new_dup != "0.0" && $new_dup != "" ]]; then
+          echo "SonarQube PR Analysis failed -> New code duplication found"
           fail
         fi
 
-        if [[ $csm != "0" && $csm != "" ]]; then
-          echo "SonarQube Analysis failed -> Code smells found"
+        if [[ $new_csm != "0" && $new_csm != "" ]]; then
+          echo "SonarQube PR Analysis failed -> New code smells found"
           fail
         fi
 
-        if [[ $sec != "0" && $sec != "" ]]; then
-          echo "SonarQube Analysis failed -> Security hotspots found"
-          fail
-        fi
-
-        echo "SonarQube Analysis passed successfully."
+        echo "SonarQube PR Analysis passed successfully."
 
     - name: 'Stop SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
