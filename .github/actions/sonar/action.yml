@@ -110,9 +110,9 @@ runs:
       id: sonar-metrics
       shell: bash
       run: |
-        sleep 60
+        sleep 120
 
-        sonar=$(curl -s -u admin:admin 'http://localhost:9001/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=bugs%2Ccoverage%2Cvulnerabilities%2Cduplicated_lines_density%2Ccode_smells%2Csecurity_hotspots')
+        sonar=$(curl -s -u admin:admin "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=bugs%2Ccoverage%2Cvulnerabilities%2Cduplicated_lines_density%2Ccode_smells%2Csecurity_hotspots")
         echo "sonar analysis response: $sonar"
 
         sonar_response=$(curl -s -u admin:admin \
