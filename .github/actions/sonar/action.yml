@@ -31,18 +31,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: 'Change to specified working directory'
-      shell: bash
-      run: |
-        cd ${{ inputs.workdir }}
-
-#    - name: 'Create cache directory and copy files'
-#      if: github.ref == 'refs/heads/main'
-#      shell: bash
-#      run: |
-#        mkdir -p ./cached-project
-#        find . -path ./generator-jhipster -prune -o -print | cpio -pdm ./cached-project
-
     - name: 'Create cache directory and copy files'
       if: github.ref == 'refs/heads/main'
       shell: bash
@@ -86,21 +74,21 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        ls -la
         cd cached-project
         ls -la
-        ../mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
+        ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
           -Dsonar.password=admin
           -Dsonar.branch.name=main
-        cd ..
 
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
+        cd {{ inputs.workdir }}
+        ls -la
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
