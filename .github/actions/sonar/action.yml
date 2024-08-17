@@ -85,6 +85,7 @@ runs:
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
           -Dsonar.password=admin \
+          -Dsonar.branch.name=main \
           -Dsonar.qualitygate.wait=true
 
     - name: 'Run SonarQube on PR'
@@ -100,7 +101,7 @@ runs:
           -Dsonar.qualitygate.wait=true \
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
           -Dsonar.pullrequest.branch=${{github.head_ref}} \
-          -Dsonar.pullrequest.base=${{github.base_ref}}
+          -Dsonar.pullrequest.base=main
 
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
@@ -137,11 +138,11 @@ runs:
           echo ""
           echo "| Metric                      | Value       |"
           echo "|-----------------------------|-------------|"
-          echo "| **Coverage on New Code**    | ${new_cov}% |"
           echo "| **New Vulnerabilities**     | ${new_vul} |"
           echo "| **New Bugs**                | ${new_bug} |"
-          echo "| **Duplication on New Code** | ${new_dup}% |"
           echo "| **New Code smells**         | ${new_csm} |"
+          echo "| **Coverage on New Code**    | ${new_cov}% |"
+          echo "| **Duplication on New Code** | ${new_dup}% |"
 
           if [[ "${new_violations}" != "N/A" && "${new_violations}" != "0" ]]; then
             echo ""
