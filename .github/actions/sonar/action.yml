@@ -106,6 +106,7 @@ runs:
 
     - name: 'Retrieve PR metrics'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      id: sonar-metrics
       shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
@@ -133,44 +134,82 @@ runs:
         new_dup=$(measure "new_duplicated_lines_density")
         new_csm=$(measure "new_code_smells")
 
-        echo "----- SonarQube PR Analysis Results -----"
-        echo "  New Coverage:          ${new_cov:-N/A}%"
-        echo "  New Vulnerabilities:   ${new_vul:-N/A}"
-        echo "  New Bugs:              ${new_bug:-N/A}"
-        echo "  New Duplication:       ${new_dup:-N/A}%"
-        echo "  New Code smells:       ${new_csm:-N/A}"
-        echo "-----------------------------------------"
+        echo "new_vul=$new_vul" >> $GITHUB_ENV
+        echo "new_bug=$new_bug" >> $GITHUB_ENV
+        echo "new_dup=$new_dup" >> $GITHUB_ENV
+        echo "new_csm=$new_csm" >> $GITHUB_ENV
+        echo "new_cov=$new_cov" >> $GITHUB_ENV
 
-        fail () {
-          echo
-          echo 'Listing all unresolved issues:'
-          curl -s -u admin:admin \
-          "http://localhost:9000/api/issues/search?componentKeys=${{ inputs.sonar_project_key }}&resolved=false&pullRequest=${{ github.event.pull_request.number }}" | \
-          jq -r '.issues[] | "File: \(.component) Line: \(.line)\n  [\(.rule)] \(.message)\n"'
-          exit 1
-        }
+        # Format the output as a markdown table
+        echo "## :bar_chart: SonarQube PR Analysis Results" > sonar_result.md
+        echo "" >> sonar_result.md
+        echo "| Metric                  | Value       |" >> sonar_result.md
+        echo "|-------------------------|-------------|" >> sonar_result.md
+        echo "| **New Coverage**        | ${new_cov:-N/A}% |" >> sonar_result.md
+        echo "| **New Vulnerabilities** | ${new_vul:-N/A} |" >> sonar_result.md
+        echo "| **New Bugs**            | ${new_bug:-N/A} |" >> sonar_result.md
+        echo "| **New Duplication**     | ${new_dup:-N/A}% |" >> sonar_result.md
+        echo "| **New Code smells**     | ${new_csm:-N/A} |" >> sonar_result.md
+        echo "" >> sonar_result.md
+        echo "**Note**: If there are unresolved issues, they can be found in the logs of this [workflow run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})." >> sonar_result.md
+
+        echo "sonar-result=$(cat sonar_result.md)" >> $GITHUB_ENV
+
+    - name: 'Find previous comment'
+      if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success'
+      id: find-comment
+      uses: peter-evans/find-comment@v3
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: github-actions[bot]
+        body-includes: '## :bar_chart: SonarQube PR Analysis Results'
+
+    - name: 'Create or update PR comment with SonarQube results'
+      if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success'
+      uses: peter-evans/create-or-update-comment@v4
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body: ${{ env.sonar-result }}
+        comment-id: ${{ steps.find-comment.outputs.comment-id }}
+
+    - name: 'Fail on issues and list them'
+      if: github.event_name == 'pull_request' && steps.sonar-metrics.outcome == 'success'
+      shell: bash
+      run: |
+        fail=false
 
         if [[ $new_vul != "0" && $new_vul != "" ]]; then
           echo "SonarQube PR Analysis failed -> New vulnerabilities found"
-          fail
+          fail=true
         fi
 
         if [[ $new_bug != "0" && $new_bug != "" ]]; then
           echo "SonarQube PR Analysis failed -> New bugs found"
-          fail
+          fail=true
         fi
 
         if [[ $new_dup != "0.0" && $new_dup != "" ]]; then
           echo "SonarQube PR Analysis failed -> New code duplication found"
-          fail
+          fail=true
         fi
 
         if [[ $new_csm != "0" && $new_csm != "" ]]; then
           echo "SonarQube PR Analysis failed -> New code smells found"
-          fail
+          fail=true
         fi
 
-        echo "SonarQube PR Analysis passed successfully."
+        if [ "$fail" = true ]; then
+          echo "Listing all unresolved issues..."
+          issues=$(curl -s -u admin:admin \
+            "http://localhost:9000/api/issues/search?componentKeys=${{ inputs.sonar_project_key }}&resolved=false&pullRequest=${{ github.event.pull_request.number }}" | \
+            jq -r '.issues[] | "File: \(.component) Line: \(.line)\n  [\(.rule)] \(.message)\n"')
+
+          echo "## :warning: Unresolved Issues Found" >> sonar_result.md
+          echo "$issues" >> sonar_result.md
+          echo "sonar-result=$(cat sonar_result.md)" >> $GITHUB_ENV
+
+          exit 1
+        fi
 
     - name: 'Stop SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
