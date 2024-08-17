@@ -81,7 +81,6 @@ runs:
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
           -Dsonar.password=admin
-          -Dsonar.branch.name=main
 
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
@@ -96,7 +95,7 @@ runs:
           -Dsonar.password=admin
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}}
           -Dsonar.pullrequest.branch=${{github.head_ref}}
-          -Dsonar.pullrequest.base=main
+          -Dsonar.pullrequest.base=${{github.base_ref}}
 
     - name: 'Retrieve PR metrics'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
