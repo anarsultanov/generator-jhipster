@@ -70,6 +70,11 @@ runs:
           sleep 5
         done
 
+    - name: 'Create SonarQube project'
+      shell: bash
+      run: |
+        curl -s -u admin:admin -X POST "http://localhost:9000/api/projects/create?name=${{ inputs.sonar_project_key }}&project=${{ inputs.sonar_project_key }}" || true
+
     - name: 'Run SonarQube on main (cached)'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
@@ -80,7 +85,8 @@ runs:
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
-          -Dsonar.password=admin
+          -Dsonar.password=admin \
+          -Dsonar.qualitygate.wait=true
 
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
@@ -92,9 +98,10 @@ runs:
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
-          -Dsonar.password=admin
-          -Dsonar.pullrequest.key=${{github.event.pull_request.number}}
-          -Dsonar.pullrequest.branch=${{github.head_ref}}
+          -Dsonar.password=admin \
+          -Dsonar.qualitygate.wait=true \
+          -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
+          -Dsonar.pullrequest.branch=${{github.head_ref}} \
           -Dsonar.pullrequest.base=${{github.base_ref}}
 
     - name: 'Retrieve PR metrics'
