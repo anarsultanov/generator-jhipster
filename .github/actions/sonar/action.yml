@@ -108,7 +108,7 @@ runs:
       shell: bash
       run: |
         sonar_response=$(curl -s -u admin:admin \
-        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations")
+        "http://localhost:9000/api/measures/component?component=${{ inputs.sonar_project_key }}&pullRequest=${{ github.event.pull_request.number }}&metricKeys=new_bugs,new_vulnerabilities,new_code_smells,new_coverage,new_duplicated_lines_density,new_violations&additionalFields=period,metrics")
 
         echo "SonarQube Analysis response: $sonar_response"
 
@@ -122,7 +122,6 @@ runs:
           echo "$env_var_name=$metric_value" >> $GITHUB_ENV
         }
 
-        # Export each metric value
         export_measure "new_vulnerabilities" "new_vul"
         export_measure "new_code_smells" "new_csm"
         export_measure "new_bugs" "new_bug"
