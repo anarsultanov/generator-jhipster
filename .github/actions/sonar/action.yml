@@ -63,17 +63,16 @@ runs:
         mkdir -p ./git-repo
         cd ./git-repo
 
-        # Initialize a new Git repository
-        git init
-        git config user.name "GitHub Action"
-        git config user.email "action@github.com"
+        
 
         # Copy files from the cached directory (main branch)
         cp -r ../${{ inputs.sonar_project_key }}-cached/. .
 
-        ls -la
-        git status --ignored
-        git ls-files
+        rm -rf .git
+        # Initialize a new Git repository
+        git init
+        git config user.name "GitHub Action"
+        git config user.email "action@github.com"
 
         # Add and commit the initial state (main branch)
         git add -A
