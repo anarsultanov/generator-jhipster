@@ -110,7 +110,7 @@ runs:
           -Dsonar.login=admin \
           -Dsonar.password=admin \
           -Dsonar.branch.name=main \
-          -Dsonar.qualitygate.wait=true \
+#          -Dsonar.qualitygate.wait=true \
           -Dsonar.verbose=true
 
     - name: 'Remove all files except .git before copying PR changes'
@@ -145,12 +145,42 @@ runs:
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
           -Dsonar.password=admin \
-          -Dsonar.qualitygate.wait=true \
+#          -Dsonar.qualitygate.wait=true \
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
           -Dsonar.pullrequest.branch=dev \
           -Dsonar.pullrequest.base=main \
           -Dsonar.scm.revision=${{ env.LATEST_COMMIT_HASH }} \
           -Dsonar.verbose=true
+
+    - name: 'Wait for SonarQube tasks to complete'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        wait_for_completion() {
+          while : ; do
+            # Fetch the component's tasks
+            response=$(curl -s -u admin:admin "http://localhost:9000/api/ce/component?component=${{ inputs.sonar_project_key }}")
+
+            # Check for any pending or in-progress tasks in the queue or the current task
+            queue_status=$(echo "$response" | jq -r '.queue[]?.status')
+            current_status=$(echo "$response" | jq -r '.current.status')
+
+            if [[ "$queue_status" == "" && "$current_status" != "IN_PROGRESS" ]]; then
+              echo "All tasks completed or no tasks pending. Proceeding..."
+              break
+            fi
+
+            if [[ "$queue_status" == "PENDING" || "$queue_status" == "IN_PROGRESS" || "$current_status" == "IN_PROGRESS" ]]; then
+              echo "Tasks are still in progress or pending. Waiting..."
+              sleep 10
+            else
+              echo "All tasks completed. Proceeding..."
+              break
+            fi
+          done
+        }
+
+       wait_for_completion
 
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
