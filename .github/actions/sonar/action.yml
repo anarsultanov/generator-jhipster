@@ -137,7 +137,6 @@ runs:
         git add -A
         echo "Changed files:"
         git status --short
-#        git commit -m "Apply changes from PR branch"
 
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
