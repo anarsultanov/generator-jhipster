@@ -20,6 +20,8 @@ package <%= packageName %>.security;
 
 import <%= packageName %>.config.Constants;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Optional;
 
 import org.springframework.data.domain.AuditorAware;
@@ -34,5 +36,67 @@ public class SpringSecurityAuditorAware implements AuditorAware<String> {
     @Override
     public Optional<String> getCurrentAuditor() {
         return Optional.of(SecurityUtils.getCurrentUserLogin().orElse(Constants.SYSTEM));
+    }
+
+    // Method 1: Method with High Cyclomatic Complexity
+    public int calculate(int a, int b, String operation) {
+        int result = 0;
+        if ("add".equals(operation)) {
+            result = a + b;
+        } else if ("subtract".equals(operation)) {
+            result = a - b;
+        } else if ("multiply".equals(operation)) {
+            result = a * b;
+        } else if ("divide".equals(operation)) {
+            if (b != 0) {
+                result = a / b;
+            } else {
+                throw new ArithmeticException("Division by zero");
+            }
+        } else if ("modulus".equals(operation)) {
+            result = a % b;
+        } else if ("power".equals(operation)) {
+            result = (int) Math.pow(a, b);
+        } else if ("max".equals(operation)) {
+            result = Math.max(a, b);
+        } else if ("min".equals(operation)) {
+            result = Math.min(a, b);
+        }
+        return result;
+    }
+
+    // Method 2: Method with Hardcoded Credentials
+    public boolean authenticate(String username, String password) {
+        String storedUsername = "admin"; // Noncompliant: Hardcoded username
+        String storedPassword = "password123"; // Noncompliant: Hardcoded password
+        return storedUsername.equals(username) && storedPassword.equals(password);
+    }
+
+    // Method 3: Method with SQL Injection Vulnerability
+    public void deleteUser(String userId) {
+        try {
+            String query = "DELETE FROM users WHERE id = '" + userId + "'"; // Noncompliant: SQL Injection risk
+            // Execute the query
+        } catch (Exception e) {
+            e.printStackTrace(); // Noncompliant: Print stack trace in production code
+        }
+    }
+
+    // Method 4: Method with Resource Leak
+    public void readFile(String filePath) {
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(filePath);
+            // Read file
+        } catch (IOException e) {
+            e.printStackTrace(); // Noncompliant: Print stack trace in production code
+        }
+        // Noncompliant: fis might not be closed if an exception is thrown
+    }
+
+    // Method 5: Method with Unused Variable
+    public void processOrder(int orderId) {
+        int unusedVariable = 42; // Noncompliant: Unused variable
+        // Process the order
     }
 }
