@@ -72,7 +72,8 @@ runs:
         cp -r ../${{ inputs.sonar_project_key }}-cached/. .
 
         # Add and commit the initial state (main branch)
-        git add .
+        git add -A
+        git status
         git commit -m "Initial commit from main branch"
 
     - name: 'Check file content before PR changes'
@@ -80,6 +81,7 @@ runs:
       shell: bash
       run: |
         # Check the content of the specific file before PR changes are applied
+        cd ./git-repo
         echo "File content before PR changes:"
         cat ./src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java || echo "File not found"
 
@@ -105,6 +107,7 @@ runs:
       shell: bash
       run: |
         # Check the content of the specific file after PR changes are applied
+        cd ./git-repo
         echo "File content after PR changes:"
         cat ./src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java || echo "File not found"
 
@@ -121,7 +124,7 @@ runs:
         git rm -r --cached .  # Remove all files from the index
 
         # Add and commit the PR changes
-        git add .
+        git add -A
         echo "Changed files:"
         git status --short
         git commit -m "Apply changes from PR branch"
