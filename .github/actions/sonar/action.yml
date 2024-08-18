@@ -71,7 +71,9 @@ runs:
         # Copy files from the cached directory (main branch)
         cp -r ../${{ inputs.sonar_project_key }}-cached/. .
 
+        ls -la
         git status --ignored
+        git ls-files
 
         # Add and commit the initial state (main branch)
         git add -A
