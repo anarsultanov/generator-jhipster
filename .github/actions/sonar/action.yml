@@ -128,6 +128,7 @@ runs:
         rm -rf "${{ inputs.workdir }}/.git"
         cp -r ${{ inputs.workdir }}/. .
 
+        git checkout -b dev
         git add -A
         git commit -m "Apply changes from PR branch"
 
@@ -146,7 +147,7 @@ runs:
           -Dsonar.password=admin \
           -Dsonar.qualitygate.wait=true \
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
-          -Dsonar.pullrequest.branch=${{github.head_ref}} \
+          -Dsonar.pullrequest.branch=dev \
           -Dsonar.pullrequest.base=main \
           -Dsonar.scm.revision=${{ env.LATEST_COMMIT_HASH }} \
           -Dsonar.verbose=true
