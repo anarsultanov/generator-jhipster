@@ -63,16 +63,13 @@ runs:
         mkdir -p ./git-repo
         cd ./git-repo
 
-        # Copy files from the cached directory (main branch)
         cp -r ../${{ inputs.sonar_project_key }}-cached/. .
         rm -rf .git
 
-        # Initialize a new Git repository
         git init
         git config user.name "GitHub Action"
         git config user.email "action@github.com"
 
-        # Add and commit the initial state (main branch)
         git add -A
         git status --short
         git commit -m "Initial commit from main branch"
@@ -114,17 +111,13 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        # Ensure we are in the separate Git directory
         cd ./git-repo
-
-        # Remove all files except the .git directory
         find . -mindepth 1 -not -path "./.git*" -delete
 
     - name: 'Copy PR files to Git directory'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        # Copy files from the workdir to the Git directory
         cd ./git-repo
         rm -rf "${{ inputs.workdir }}/.git"
         cp -r ${{ inputs.workdir }}/. .
