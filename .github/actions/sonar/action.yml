@@ -63,6 +63,8 @@ runs:
         git init
         git config user.name "GitHub Action"
         git config user.email "action@github.com"
+
+        cat src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java
         git add .
         git commit -m "Initial commit from main branch"
 
@@ -103,6 +105,7 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
+        cat src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java
         find ./${{ inputs.sonar_project_key }}-cached -mindepth 1 -not -path "./.git*" -delete
 
     - name: 'Copy PR files to cached directory and commit changes'
@@ -112,7 +115,12 @@ runs:
         cd ${{ inputs.workdir }}
         find . -path ./.git -prune -o -exec cp -r --parents '{}' ../${{ inputs.sonar_project_key }}-cached/ \;
         cd ../${{ inputs.sonar_project_key }}-cached
+
+        cat src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java
         git add .
+        echo "Changed files:"
+        git status --short
+        git diff --cached --name-only
         git commit -m "Apply changes from PR branch"
 
     - name: 'Run SonarQube on PR'
