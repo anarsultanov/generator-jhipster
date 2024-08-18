@@ -108,6 +108,7 @@ runs:
       run: |
         # Copy files from the workdir to the Git directory
         cd ./git-repo
+        rm -rf "${{ inputs.workdir }}/.git"
         cp -r ${{ inputs.workdir }}/. .
 
     - name: 'Check file content after PR changes'
