@@ -178,7 +178,7 @@ runs:
           done
         }
 
-       wait_for_completion
+        wait_for_completion
 
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
