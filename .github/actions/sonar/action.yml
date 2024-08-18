@@ -55,25 +55,6 @@ runs:
         restore-keys: |
           cache-${{ inputs.sonar_project_key }}-
 
-    - name: 'Set up new Git directory'
-      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
-      shell: bash
-      run: |
-        # Create a separate directory for the Git repository
-        mkdir -p ./git-repo
-        cd ./git-repo
-
-        cp -r ../${{ inputs.sonar_project_key }}-cached/. .
-        rm -rf .git
-
-        git init
-        git config user.name "GitHub Action"
-        git config user.email "action@github.com"
-
-        git add -A
-        git status --short
-        git commit -m "Initial commit from main branch"
-
     - name: 'Install jq'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
@@ -93,6 +74,25 @@ runs:
       shell: bash
       run: |
         curl -s -u admin:admin -X POST "http://localhost:9000/api/projects/create?name=${{ inputs.sonar_project_key }}&project=${{ inputs.sonar_project_key }}" || true
+
+    - name: 'Set up new Git directory'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        # Create a separate directory for the Git repository
+        mkdir -p ./git-repo
+        cd ./git-repo
+
+        cp -r ../${{ inputs.sonar_project_key }}-cached/. .
+        rm -rf .git
+
+        git init
+        git config user.name "GitHub Action"
+        git config user.email "action@github.com"
+
+        git add -A
+        git status --short
+        git commit -m "Initial commit from main branch"
 
     - name: 'Run SonarQube on main (cached)'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
