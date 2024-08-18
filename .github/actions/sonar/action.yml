@@ -110,7 +110,6 @@ runs:
           -Dsonar.login=admin \
           -Dsonar.password=admin \
           -Dsonar.branch.name=main \
-#          -Dsonar.qualitygate.wait=true \
           -Dsonar.verbose=true
 
     - name: 'Remove all files except .git before copying PR changes'
@@ -145,7 +144,6 @@ runs:
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
           -Dsonar.password=admin \
-#          -Dsonar.qualitygate.wait=true \
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
           -Dsonar.pullrequest.branch=dev \
           -Dsonar.pullrequest.base=main \
