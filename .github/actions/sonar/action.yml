@@ -31,6 +31,10 @@ inputs:
 runs:
   using: composite
   steps:
+
+    ###############################################
+    # Following steps are executed on main branch #
+    ###############################################
     - name: 'Create cache directory and copy files'
       if: github.ref == 'refs/heads/main'
       shell: bash
@@ -45,6 +49,9 @@ runs:
         path: ./${{ inputs.sonar_project_key }}-cached
         key: cache-${{ inputs.sonar_project_key }}-${{ github.sha }}
 
+    ######################################
+    # Following steps are executed on PR #
+    ######################################
     - name: 'Restore project cache to specific directory'
       if: github.event_name == 'pull_request'
       id: restore-cache
@@ -75,11 +82,10 @@ runs:
       run: |
         curl -s -u admin:admin -X POST "http://localhost:9000/api/projects/create?name=${{ inputs.sonar_project_key }}&project=${{ inputs.sonar_project_key }}" || true
 
-    - name: 'Set up new Git directory'
+    - name: 'Set up new Git directory with files from main'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        # Create a separate directory for the Git repository
         mkdir -p ./git-repo
         cd ./git-repo
 
@@ -91,21 +97,21 @@ runs:
         git config user.email "action@github.com"
 
         git add -A
-        git status --short
         git commit -m "Initial commit from main branch"
 
-    - name: 'Run SonarQube on main (cached)'
+    - name: 'Run SonarQube on main'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
         cd ./git-repo
-        ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
+        ./mvnw -X -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
           -Dsonar.password=admin \
           -Dsonar.branch.name=main \
-          -Dsonar.qualitygate.wait=true
+          -Dsonar.qualitygate.wait=true \
+          -Dsonar.verbose=true
 
     - name: 'Remove all files except .git before copying PR changes'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
@@ -122,22 +128,18 @@ runs:
         rm -rf "${{ inputs.workdir }}/.git"
         cp -r ${{ inputs.workdir }}/. .
 
-    - name: 'Check for changes and commit PR files'
-      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
-      shell: bash
-      run: |
-        cd ./git-repo
         git add -A
-        echo "Changed files:"
-        git status --short
         git commit -m "Apply changes from PR branch"
+
+        latest_commit_hash=$(git rev-parse HEAD)
+        echo "LATEST_COMMIT_HASH=${latest_commit_hash}" >> $GITHUB_ENV
 
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
         cd ./git-repo
-        ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
+        ./mvnw -X -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
           -Dsonar.login=admin \
@@ -145,7 +147,9 @@ runs:
           -Dsonar.qualitygate.wait=true \
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
           -Dsonar.pullrequest.branch=${{github.head_ref}} \
-          -Dsonar.pullrequest.base=main
+          -Dsonar.pullrequest.base=main \
+          -Dsonar.scm.revision=${{ env.LATEST_COMMIT_HASH }} \
+          -Dsonar.verbose=true
 
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
