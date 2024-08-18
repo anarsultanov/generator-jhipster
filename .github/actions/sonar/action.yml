@@ -71,10 +71,20 @@ runs:
         # Copy files from the cached directory (main branch)
         cp -r ../${{ inputs.sonar_project_key }}-cached/. .
 
+        # Temporarily rename the .gitignore file to avoid interference
+        mv .gitignore .gitignore_temp || true
+
         # Add and commit the initial state (main branch)
         git add -A
+
+        # Check the Git status to verify all files are tracked
+        echo "Git status before initial commit:"
         git status
+
         git commit -m "Initial commit from main branch"
+
+        # Restore the .gitignore file
+        mv .gitignore_temp .gitignore || true
 
     - name: 'Check file content before PR changes'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
