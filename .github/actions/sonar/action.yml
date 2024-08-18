@@ -55,12 +55,6 @@ runs:
         restore-keys: |
           cache-${{ inputs.sonar_project_key }}-
 
-    - name: 'Remove existing .git directory'
-      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
-      shell: bash
-      run: |
-        rm -rf ./${{ inputs.sonar_project_key }}-cached/.git
-
     - name: 'Initialize Git in cached directory'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
@@ -70,19 +64,8 @@ runs:
         git config user.name "GitHub Action"
         git config user.email "action@github.com"
 
-        # Verify the initial state of the file
-        cat src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java
         git add .
         git commit -m "Initial commit from main branch"
-
-    - name: 'Capture the initial commit SHA'
-      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
-      id: capture-initial-sha
-      shell: bash
-      run: |
-        cd ./${{ inputs.sonar_project_key }}-cached
-        export INITIAL_COMMIT_SHA=$(git rev-parse HEAD)
-        echo "INITIAL_COMMIT_SHA=${INITIAL_COMMIT_SHA}" >> $GITHUB_ENV
 
     - name: 'Install jq'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
@@ -129,24 +112,13 @@ runs:
       run: |
         cd ${{ inputs.workdir }}
         find . -path ./.git -prune -o -exec cp -r --parents '{}' ../${{ inputs.sonar_project_key }}-cached/ \;
-        cd ../${{ inputs.sonar_project_key }}-cached
 
-        # Verify that the file has been updated
-        cat src/main/java/tech/jhipster/sample/security/SpringSecurityAuditorAware.java
-
-        # Check for differences
-        echo "Changed files:"
-        git status --short
-        git diff --cached --name-only
-
-        git add .
-        git commit -m "Apply changes from PR branch"
-
-    - name: 'Run SonarQube on PR with SCM settings'
+    - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
         cd ${{ inputs.sonar_project_key }}-cached
+        git status
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
@@ -155,8 +127,7 @@ runs:
           -Dsonar.qualitygate.wait=true \
           -Dsonar.pullrequest.key=${{github.event.pull_request.number}} \
           -Dsonar.pullrequest.branch=${{github.head_ref}} \
-          -Dsonar.pullrequest.base=main \
-          -Dsonar.scm.revision=$INITIAL_COMMIT_SHA
+          -Dsonar.pullrequest.base=main
 
     - name: 'Retrieve PR metrics from SonarQube'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
