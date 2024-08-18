@@ -127,11 +127,6 @@ runs:
         # Change to the Git directory
         cd ./git-repo
 
-        # Clean and reset Git to ensure a clean working directory
-        git reset --hard HEAD
-        git clean -fdx  # Remove untracked files and directories
-        git rm -r --cached .  # Remove all files from the index
-
         # Add and commit the PR changes
         git add -A
         echo "Changed files:"
