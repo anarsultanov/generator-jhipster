@@ -55,6 +55,17 @@ runs:
         restore-keys: |
           cache-${{ inputs.sonar_project_key }}-
 
+    - name: 'Initialize Git in cached directory'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        cd ./${{ inputs.sonar_project_key }}-cached
+        git init
+        git config user.name "GitHub Action"
+        git config user.email "action@github.com"
+        git add .
+        git commit -m "Initial commit from main branch"
+
     - name: 'Install jq'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
@@ -88,11 +99,26 @@ runs:
           -Dsonar.branch.name=main \
           -Dsonar.qualitygate.wait=true
 
+    - name: 'Remove all files before copying PR changes'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        rm -rf ./${{ inputs.sonar_project_key }}-cached/*
+
+    - name: 'Copy PR files to cached directory and commit changes'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        cp -r ${{ inputs.workdir }}/. ./${{ inputs.sonar_project_key }}-cached/
+        cd ./${{ inputs.sonar_project_key }}-cached
+        git add .
+        git commit -m "Apply changes from PR branch"
+
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
-        cd ${{ inputs.workdir }}
+        cd ${{ inputs.sonar_project_key }}-cached
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
