@@ -113,12 +113,22 @@ runs:
         cd ${{ inputs.workdir }}
         find . -path ./.git -prune -o -exec cp -r --parents '{}' ../${{ inputs.sonar_project_key }}-cached/ \;
 
+    - name: 'Clean and Reset Git Before Copying PR Changes'
+      if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        cd ./${{ inputs.sonar_project_key }}-cached
+        git reset --hard HEAD
+        git clean -fdx  # Remove untracked files and directories
+        git rm -r --cached .  # Remove all files from the index
+
     - name: 'Run SonarQube on PR'
       if: github.event_name == 'pull_request' && steps.restore-cache.outputs.cache-hit == 'true'
       shell: bash
       run: |
         cd ${{ inputs.sonar_project_key }}-cached
-        git status
+        git status --short
+        git diff --cached --name-only
         ./mvnw -ntp --batch-mode initialize org.jacoco:jacoco-maven-plugin:prepare-agent sonar:sonar \
           -Dsonar.host.url=http://localhost:9000 \
           -Dsonar.projectKey=${{ inputs.sonar_project_key }} \
