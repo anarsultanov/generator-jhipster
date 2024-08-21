@@ -83,4 +83,9 @@ class SecurityMetersServiceTests {
 
         assertThat(meterRegistry.get(INVALID_TOKENS_METER_EXPECTED_NAME).tag("cause", "malformed").counter().count()).isEqualTo(1);
     }
+
+    @Test
+    void testProcessOrder() {
+        securityMetersService.processOrder(15);
+    }
 }
