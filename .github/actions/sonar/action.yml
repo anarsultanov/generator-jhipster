@@ -90,7 +90,7 @@ runs:
         -Dsonar.login=admin
         -Dsonar.password=admin
         -Dsonar.branch.name=main
-      working-directory: ${{ inputs.sonar-project-key }}
+      working-directory: ${{ inputs.sonar-project-key }}-cached
 
     # Prepare the repository for the PR changes
     - name: 'Clean repository for PR changes'
@@ -109,7 +109,7 @@ runs:
         git checkout -b dev
         git add -A
         git commit -m "Apply changes from PR branch"
-      working-directory: ${{ inputs.sonar-project-key }}
+      working-directory: ${{ inputs.sonar-project-key }}-cached
 
     # Run SonarQube analysis on the PR changes
     - name: 'Run SonarQube analysis on PR changes'
@@ -125,7 +125,7 @@ runs:
         -Dsonar.pullrequest.branch=dev
         -Dsonar.pullrequest.base=main
         -Dsonar.scm.revision=$(git rev-parse HEAD)
-      working-directory: ${{ inputs.sonar-project-key }}
+      working-directory: ${{ inputs.sonar-project-key }}-cached
 
     # Wait for SonarQube tasks to complete
     - name: 'Wait for SonarQube tasks to complete'
