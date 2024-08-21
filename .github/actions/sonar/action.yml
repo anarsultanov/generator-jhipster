@@ -41,20 +41,20 @@ runs:
       if: github.ref == 'refs/heads/main'
       shell: bash
       run: |
-        mkdir -p ./${{ inputs.sonar-project-key }}
-        cp -r ${{ inputs.workdir }}/. ./${{ inputs.sonar-project-key }}/
-        rm -rf ${{ inputs.sonar-project-key }}/node_modules \
-            ${{ inputs.sonar-project-key }}/package-lock.json \
-            ${{ inputs.sonar-project-key }}/target/node \
-            ${{ inputs.sonar-project-key }}/target/*.original \
-            ${{ inputs.sonar-project-key }}/target/*.jar
+        mkdir -p ./${{ inputs.sonar-project-key }}-cached
+        cp -r ${{ inputs.workdir }}/. ./${{ inputs.sonar-project-key }}-cached/
+        rm -rf ${{ inputs.sonar-project-key }}-cached/node_modules \
+            ${{ inputs.sonar-project-key }}-cached/package-lock.json \
+            ${{ inputs.sonar-project-key }}-cached/target/node \
+            ${{ inputs.sonar-project-key }}-cached/target/*.original \
+            ${{ inputs.sonar-project-key }}-cached/target/*.jar
 
     - name: 'Store cache (main branch)'
       if: github.ref == 'refs/heads/main'
       uses: actions/cache/save@v4
       with:
-        path: ./${{ inputs.sonar-project-key }}
-        key: application-${{ inputs.sonar-project-key }}-${{ github.sha }}
+        path: ./${{ inputs.sonar-project-key }}-cached
+        key: cache-${{ inputs.sonar-project-key }}-${{ github.sha }}
 
     # Restore the cache for PR analysis
     - name: 'Restore project cache for PR analysis'
@@ -62,10 +62,10 @@ runs:
       id: restore_cache
       uses: actions/cache/restore@v4
       with:
-        path: ./${{ inputs.sonar-project-key }}
-        key: application-${{ inputs.sonar-project-key }}-${{ github.event.pull_request.base.sha }}
+        path: ./${{ inputs.sonar-project-key }}-cached
+        key: cache-${{ inputs.sonar-project-key }}-${{ github.event.pull_request.base.sha }}
         restore-keys: |
-          application-${{ inputs.sonar-project-key }}-
+          cache-${{ inputs.sonar-project-key }}-
 
     # Start SonarQube server using Docker Compose
     - name: 'Start SonarQube server'
@@ -97,7 +97,7 @@ runs:
       if: github.event_name == 'pull_request' && steps.restore_cache.outputs.cache-hit == 'true'
       shell: bash
       run: find . -mindepth 1 -not -path "./.git*" -delete
-      working-directory: ${{ inputs.sonar-project-key }}
+      working-directory: ${{ inputs.sonar-project-key }}-cached
 
     - name: 'Apply PR changes to the repository'
       if: github.event_name == 'pull_request' && steps.restore_cache.outputs.cache-hit == 'true'
